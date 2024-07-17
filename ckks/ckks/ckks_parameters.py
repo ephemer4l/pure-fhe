@@ -21,7 +21,7 @@ class CKKSParameters:
     """
 
     def __init__(self, poly_degree, ciph_modulus, big_modulus, scaling_factor, taylor_iterations=6,
-                 rns=True, prime_size=59):
+                 prime_size=59):
         """Inits Parameters with the given parameters.
 
         Args:
@@ -41,9 +41,8 @@ class CKKSParameters:
         self.num_taylor_iterations = taylor_iterations
         self.hamming_weight = poly_degree // 4
         self.crt_context = None
-        self.rns = rns
 
-        if rns:
+        if prime_size:
             num_primes = 1 + int((1 + math.log(poly_degree, 2) + 4 * math.log(big_modulus, 2) \
              / prime_size))
             self.crt_context = CRTContext(num_primes, prime_size, poly_degree)
@@ -57,7 +56,7 @@ class CKKSParameters:
         print("\t Big ciphertext modulus size: %d bits" % (int(math.log(self.big_modulus, 2))))
         print("\t Scaling factor size: %d bits" % (int(math.log(self.scaling_factor, 2))))
         print("\t Number of Taylor iterations: %d" % (self.num_taylor_iterations))
-        if self.rns:
+        if self.crt_context:
             rns = "Yes"
         else:
             rns = "No"

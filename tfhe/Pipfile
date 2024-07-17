@@ -1,0 +1,28 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+tfhe-py = {editable = true, path = "."}
+
+[dev-packages]
+mypy = "~=1.3.0"
+black = "~=23.3.0"
+pylint = "~=2.17.4"
+flake8 = "~=6.0.0"
+pytest = "~=7.3.1"
+isort = "~=5.12.0"
+py-spy = "~=0.3.14"
+coverage = "~=7.2.7"
+ipykernel = "~=6.23.1"
+
+[requires]
+python_version = "3.11"
+
+[scripts]
+test = "coverage run -m pytest . -s -v"
+coverage = "coverage report -m"
+mypy = "mypy ."
+flake8 = "flake8 ."
+pylint = "pylint . --recursive true"

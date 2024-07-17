@@ -22,4 +22,4 @@ Implementation in Python based on [tfhe-py](https://github.com/pmuens/tfhe-py) b
 
 - [ ] Variable parameters using [lattice-estimator](https://github.com/malb/lattice-estimator)
 - [ ] Correct typing
-- [ ] Public key encryption
+- [ ] [Public key encryption](https://eprint.iacr.org/2023/603.pdf)

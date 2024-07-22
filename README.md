@@ -9,6 +9,7 @@ Implementation in Python with Full RNS based on the [implementation](https://dsp
 - [ ] Get rid of SymPy
 - [ ] Correct typing
 - [ ] Secure random sampling
+- [ ] Implement [discrete Gaussian distribution](https://eprint.iacr.org/2010/088.pdf) instead of triangle sampling
 - [ ] [Full-RNS](https://eprint.iacr.org/2018/931.pdf)
 - [ ] [Efficient Bootstrapping](https://eprint.iacr.org/2020/1203)
 - [ ] [SHARP](https://dl.acm.org/doi/abs/10.1145/3579371.3589053) accelerator

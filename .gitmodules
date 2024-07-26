@@ -1,0 +1,3 @@
+[submodule "py-fhe"]
+	path = py-fhe
+	url = https://github.com/ephemer4l/py-fhe

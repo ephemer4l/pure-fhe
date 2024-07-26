@@ -1,3 +1,6 @@
 [submodule "py-fhe"]
 	path = py-fhe
 	url = https://github.com/ephemer4l/py-fhe
+[submodule "tfhe-py"]
+	path = tfhe-py
+	url = https://github.com/ephemer4l/tfhe-py

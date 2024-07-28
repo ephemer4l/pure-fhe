@@ -28,7 +28,7 @@ class SparseEncoder:
         self.N = N
         self.n = n
         self.scale = scale
-        root = np.exp((1j * np.pi) / self.n)
+        root = np.exp((-1j * np.pi) / self.n)
 
         # We can generate roots of unity by using powers of 5 since the order
         # of 5 in the multiplicative group of integers modulo n is 2^(n-2)

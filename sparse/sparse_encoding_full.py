@@ -159,10 +159,9 @@ class SparseEncoder:
 
         return np.polynomial.Polynomial(empty)
 
-np.set_printoptions(precision=3, suppress=True, linewidth=np.nan)
+# np.set_printoptions(precision=2, suppress=True, linewidth=np.nan)
 
-s = SparseEncoder(N=512, n=256, scale=32)
-p = s.encode(64 * [3+4j,2-1j])
-
-print(p)
-print(s.decode(p))
+# s = SparseEncoder(N=512, n=256, scale=32)
+# p = s.encode(64 * [3+4j,2-1j])
+# print(p)
+# print(s.decode(p))

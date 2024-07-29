@@ -34,7 +34,7 @@ class SparseEncoder:
         # of 5 in the multiplicative group of integers modulo n is 2^(n-2)
         # (giving all elements congruent to 1 mod 4). The rest are elements
         # congruent to 3 mod 4 and they give the conjugates of our roots.
-        self.roots_of_unity = [(root) ** (5**j % self.N) for j in range(0, self.n // 2)]
+        self.roots_of_unity = [(root) ** (5**j % (2 * self.n)) for j in range(0,self.n// 2)]
         self.vandermonde = np.vander(self.roots_of_unity, self.n, increasing=True)
 
     def decode(self, polynomial: np.polynomial.polynomial.Polynomial):

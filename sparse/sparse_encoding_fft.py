@@ -143,14 +143,9 @@ class SparseEncoder:
         log_len = int(log(len(z), 2))
         for logm in range(log_len, 0, -1):
             m = 1 << logm
-            print("m:", m)
             for i in range(0, n // 2, m):
-                print("i:", i)
                 for j in range(0, m // 2, 1):
-                    print("j:", j)
                     k = (5**j % (4 * m)) * (n // (2 * m))
-                    print("index_even", i + j)
-                    print("index_odd", i + j + m // 2)
                     U = w[i + j]
                     V = w[i + j + m // 2]
                     w[i + j] = U + V

@@ -4,13 +4,10 @@ References:
     https://eprint.iacr.org/2018/1043.pdf
 """
 
-import numpy as np
 from math import log, pi
 from cmath import exp
 import random
 
-def conjugate_vector(vector: list[complex]):
-    return list(map(lambda x: x.real - x.imag, vector))
 
 def reverse_bits(n, no_of_bits):
     """Reverse bits of an integer with bitwise shifting
@@ -75,28 +72,19 @@ class SparseEncoder:
         self.roots_of_unity = [
             (root) ** (5**j % (2 * self.n)) for j in range(0, self.n // 2)
         ]
-        # self.vandermonde = np.vander(self.roots_of_unity, self.n, increasing=True)
         self.vandermonde = [[xi**i for i in range(n)] for xi in self.roots_of_unity]
-        self.vandermonde = np.array(self.vandermonde)
-        print(self.vandermonde)
-
-    @staticmethod
-    def pi(vector: np.ndarray):
-        """The natural isomorphism between H^k and C^(k/2)
-
-        :vector: Vector in C^(k/2) for some k
-        :returns: Vector in H^k constructed from the original vector where the
-        (-i)-th coordinate is the conjugate of the (i)-th coordinate for all i
-        in k/2
-        """
-        vector_conjugate = [np.conjugate(x) for x in vector[::-1]]
-        return np.concatenate([vector, vector_conjugate])
 
     @staticmethod
     def random_rounding(v: float):
+        """Standard implementation of coordinate-wise random rounding as
+        described in section 2.4.2 of https://eprint.iacr.org/2013/293.pdf
+
+        :v: A float
+        :returns: A rounded integer with the expected value equal to input
+        vector
+        """
         r = v % 1
-        print(r)
-        f = np.random.choice([r, r - 1], 1, p=[1 - r, r])[0]
+        f = random.choices([r, r - 1], weights=[1 - r, r])[0]
         rounded_coord = v - f
         return rounded_coord
 
@@ -135,7 +123,7 @@ class SparseEncoder:
         conjugate of a primitive 2n-th root (depending on the roots of unity
         used for the fft)
         """
-        w = z
+        w = z.copy()
         log_len = int(log(len(z), 2))
         for logm in range(log_len, 0, -1):
             m = 1 << logm
@@ -158,9 +146,6 @@ class SparseEncoder:
         :vector: A vector in C^(n/2)
         :returns: Polynomial representation of vector in Z[x^(N/n)]/(x^N+1)"""
 
-        # Convert possible list to np.array
-        vector = np.array(vector)
-
         # Precompute 2nd column of the big special fourier matrix with conjugates
         roots_of_unity_inv = [
             exp(-2 * pi * 1j * k / (2 * self.n)) for k in range(0, 2 * self.n)
@@ -171,20 +156,22 @@ class SparseEncoder:
         message = [0] * ((self.n // 2) << 1)
         for i in range(self.n // 2):
             message[i] = __class__.random_rounding(bad[i].real * self.scale)
-            message[i + self.n // 2] = __class__.random_rounding(bad[i].imag * self.scale)
+            message[i + self.n // 2] = __class__.random_rounding(
+                bad[i].imag * self.scale
+            )
 
         # View as an element of the ring Z[x^(N/n)]/(x^N+1) by shifting coefficients
         empty = (self.N) * [0]
         for i in range(self.n):
             empty[self.N // self.n * i] = message[i]
 
-        return np.polynomial.Polynomial(empty)
+        return empty
 
-    def decode(self, polynomial: np.polynomial.polynomial.Polynomial):
+    def decode(self, polynomial_coeff: list):
         """Function for the canonical embedding of Z[Y]/(Y^n+1) into C^(n/2) by
         evaluation at roots of unity
 
-        :polynomial: a polynomial viewed as an element of Z[Y]/(Y^n+1)
+        :polynomial_coeff: coefficients of polynomial viewed as an element of Z[Y]/(Y^n+1)
         :returns: the de-scaled image of the polynomial under the canonical
         embedding
         """
@@ -193,8 +180,7 @@ class SparseEncoder:
         # and also scale down
         empty = (self.N) * [0]
         for i in range(self.n):
-            empty[i] = polynomial.coef[(self.N // self.n) * i] / self.scale
-        polynomial = np.polynomial.Polynomial(empty)
+            empty[i] = polynomial_coeff[(self.N // self.n) * i] / self.scale
 
         # Put coefficients into a complex vector
         message = [0] * (self.n // 2)
@@ -212,10 +198,8 @@ class SparseEncoder:
         return ev
 
 
-# np.set_printoptions(precision=2, suppress=True, linewidth=np.nan)
-
-# s = SparseEncoder(N=4, n=4, scale=32)
+# s = SparseEncoder(N=1 << 12, n=4, scale=1 << 30)
 # p = s.encode([34.1+43.4j,2123.2-12.3j])
-# p = s.encode([(0.00047111748463284087+0.2190752387526767j), (0.09327888251536716-0.1565752387526767j)])
+# p = s.encode(vec)
 # print(p)
 # print(s.decode(p))

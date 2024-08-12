@@ -63,16 +63,16 @@ class SparseEncoder:
         self.N = N
         self.n = n
         self.scale = scale
-        root = exp((1j * pi) / self.n)
 
-        # We can generate roots of unity by using powers of 5 since the order
-        # of 5 in the multiplicative group of integers modulo n is 2^(n-2)
-        # (giving all elements congruent to 1 mod 4). The rest are elements
-        # congruent to 3 mod 4 and they give the conjugates of our roots.
+        # Precompute roots of unity for FFT
         self.roots_of_unity = [
-            (root) ** (5**j % (2 * self.n)) for j in range(0, self.n // 2)
+            exp(2 * pi * 1j * k / (2 * self.n)) for k in range(0, 2 * self.n)
         ]
-        self.vandermonde = [[xi**i for i in range(n)] for xi in self.roots_of_unity]
+
+        # Precompute inverses of roots of unity for FFT
+        self.roots_of_unity_inv = [
+            exp(-2 * pi * 1j * k / (2 * self.n)) for k in range(0, 2 * self.n)
+        ]
 
     @staticmethod
     def random_rounding(v: float):
@@ -146,13 +146,8 @@ class SparseEncoder:
         :vector: A vector in C^(n/2)
         :returns: Polynomial representation of vector in Z[x^(N/n)]/(x^N+1)"""
 
-        # Precompute 2nd column of the big special fourier matrix with conjugates
-        roots_of_unity_inv = [
-            exp(-2 * pi * 1j * k / (2 * self.n)) for k in range(0, 2 * self.n)
-        ]
-
         # Apply FFT and fix coefficient order
-        bad = __class__.fft_inv(self.n, vector, roots_of_unity_inv)
+        bad = __class__.fft_inv(self.n, vector, self.roots_of_unity_inv)
         message = [0] * ((self.n // 2) << 1)
         for i in range(self.n // 2):
             message[i] = __class__.random_rounding(bad[i].real * self.scale)
@@ -175,31 +170,26 @@ class SparseEncoder:
         :returns: the de-scaled image of the polynomial under the canonical
         embedding
         """
-
-        # View the polynomial in Z[x^(N/n)]/(x^N+1) as an element of Z[y]/(y^n+1)
-        # and also scale down
-        empty = (self.N) * [0]
-        for i in range(self.n):
-            empty[i] = polynomial_coeff[(self.N // self.n) * i] / self.scale
-
-        # Put coefficients into a complex vector
-        message = [0] * (self.n // 2)
+        # View the polynomial in Z[x^(N/n)]/(x^N+1) as an element of Z[y]/(y^n+1) and
+        # pack coefficients into a complex vector after rounding
+        message = []
         for i in range(self.n // 2):
-            message[i] = complex(empty[i], empty[i + self.n // 2])
-
-        # Precompute roots of unity
-        roots_of_unity = [
-            exp(2 * pi * 1j * k / (2 * self.n)) for k in range(0, 2 * self.n)
-        ]
+            message.append(
+                complex(
+                    polynomial_coeff[(self.N // self.n) * i] / self.scale,
+                    polynomial_coeff[(self.N // self.n) * (i + (self.n // 2))]
+                    / self.scale,
+                )
+            )
 
         # Apply FFT
-        ev = __class__.fft(self.n, message, roots_of_unity)
+        ev = __class__.fft(self.n, message, self.roots_of_unity)
 
         return ev
 
 
-# s = SparseEncoder(N=1 << 12, n=4, scale=1 << 30)
-# p = s.encode([34.1+43.4j,2123.2-12.3j])
-# p = s.encode(vec)
-# print(p)
-# print(s.decode(p))
+if __name__ == "__main__":
+    s = SparseEncoder(N=4, n=4, scale=32)
+    p = s.encode([38.1 + 83.4j, 9123.2 - 12.3j])
+    print(p)
+    print(s.decode(p))

@@ -7,23 +7,13 @@ use rand::thread_rng;
 use rand::Rng;
 use std::f64::consts::PI;
 
-// #[inline]
-// fn reverse_bits(mut n: usize, no_of_bits: usize) -> usize {
-//     let mut result = 0;
-//     for _ in 0..no_of_bits {
-//         result <<= 1;
-//         result |= n & 1;
-//         n >>= 1;
-//     }
-//     result
-// }
 #[inline]
 fn reverse_bits(n: usize, no_of_bits: usize) -> usize {
     n.reverse_bits() >> (usize::BITS as usize - no_of_bits)
 }
 
 #[inline]
-fn bit_reverse_vec(values: &mut Vec<Complex<f64>>) {
+fn bit_reverse_vec(values: &mut [Complex<f64>]) {
     let len = values.len();
     let no_of_bits = (len as f64).log2() as usize;
     for i in 0..len {
@@ -33,7 +23,6 @@ fn bit_reverse_vec(values: &mut Vec<Complex<f64>>) {
         }
     }
 }
-
 
 #[inline]
 fn modular_pow(base: usize, exponent: usize, modulus: usize) -> usize {
@@ -91,15 +80,15 @@ impl SparseEncoder {
         (v - f).round() as i64
     }
 
-    fn fft(n: usize, z: &mut Vec<Complex<f64>>, roots_of_unity: &[Complex<f64>]) {
+    fn fft(&self, z: &mut [Complex<f64>], roots_of_unity: &[Complex<f64>]) {
         bit_reverse_vec(z);
-        let log_len = ((n / 2) as f64).log2() as usize;
+        let n_half = self.n / 2;
+        let log_len = (n_half as f64).log2() as usize;
         for logm in 1..=log_len {
             let m = 1 << logm;
-            for i in (0..n / 2).step_by(m) {
+            for i in (0..n_half).step_by(m) {
                 for j in 0..m / 2 {
-                    // let k = (5_usize.pow(j as u32) % (4 * m)) * ((n / 2) / m);
-                    let k = modular_pow(5, j, 4 * m) * (n / (2 * m));
+                    let k = modular_pow(5, j, 4 * m) * (n_half / m);
                     let u = z[i + j];
                     let v = z[i + j + m / 2] * roots_of_unity[k];
                     z[i + j] = u + v;
@@ -109,14 +98,14 @@ impl SparseEncoder {
         }
     }
 
-    fn fft_inv(n: usize, z: &mut Vec<Complex<f64>>, roots_of_unity_inv: &[Complex<f64>]) {
-        let log_len = ((n / 2) as f64).log2() as usize;
+    fn fft_inv(&self, z: &mut [Complex<f64>], roots_of_unity_inv: &[Complex<f64>]) {
+        let n_half = self.n / 2;
+        let log_len = (n_half as f64).log2() as usize;
         for logm in (1..=log_len).rev() {
             let m = 1 << logm;
-            for i in (0..n / 2).step_by(m) {
+            for i in (0..n_half).step_by(m) {
                 for j in 0..m / 2 {
-                    // let k = (5_usize.pow(j as u32) % (4 * m)) * (n / (2 * m));
-                    let k = modular_pow(5, j, 4 * m) * (n / (2 * m));
+                    let k = modular_pow(5, j, 4 * m) * (n_half / m);
                     let u = z[i + j];
                     let v = z[i + j + m / 2];
                     z[i + j] = u + v;
@@ -125,36 +114,34 @@ impl SparseEncoder {
             }
         }
         bit_reverse_vec(z);
+        let n_recip = 1.0 / (n_half as f64);
         for element in z.iter_mut() {
-            *element /= n as f64 / 2.0;
+            *element *= n_recip;
         }
     }
-fn encode(&self, vector: &Vec<Complex<f64>>) -> Vec<i64> {
-        let mut bad = vector.clone();
-        Self::fft_inv(self.n, &mut bad, &self.roots_of_unity_inv);
-        let mut message = vec![0; self.n];
-        for i in 0..self.n / 2 {
-            message[i] = Self::random_rounding(bad[i].re * self.scale);
-            message[i + self.n / 2] = Self::random_rounding(bad[i].im * self.scale);
-        }
-
+    fn encode(&self, vector: &mut [Complex<f64>]) -> Vec<i64> {
+        self.fft_inv(vector, &self.roots_of_unity_inv);
         let mut result = vec![0; self.N];
-        for i in 0..self.n {
-            result[self.N / self.n * i] = message[i];
+        let n_half = self.n / 2;
+        let factor = self.N / self.n;
+        for i in 0..n_half {
+            result[factor * i] = Self::random_rounding(vector[i].re * self.scale);
+            result[factor * (i + n_half)] = Self::random_rounding(vector[i].im * self.scale);
         }
-
         result
     }
 
-    fn decode(&self, polynomial_coeff: Vec<i64>) -> Vec<Complex<f64>> {
-        let mut message = Vec::with_capacity(self.n / 2);
-        for i in 0..(self.n / 2) {
-            let real_part = polynomial_coeff[(self.N / self.n) * i] as f64 / self.scale;
-            let imag_part = polynomial_coeff[(self.N / self.n) * (i + self.n / 2)] as f64 / self.scale;
+    fn decode(&self, polynomial_coeff: &[i64]) -> Vec<Complex<f64>> {
+        let n_half = self.n / 2;
+        let factor = self.N / self.n;
+        let mut message = Vec::with_capacity(n_half);
+        for i in 0..n_half {
+            let real_part = polynomial_coeff[factor * i] as f64 / self.scale;
+            let imag_part = polynomial_coeff[factor * (i + n_half)] as f64 / self.scale;
             message.push(Complex::new(real_part, imag_part));
         }
 
-        Self::fft(self.n, &mut message, &self.roots_of_unity);
+        self.fft(&mut message, &self.roots_of_unity);
 
         message
     }
@@ -183,15 +170,16 @@ fn are_approx_equal(v1: &[Complex<f64>], v2: &[Complex<f64>], tolerance: f64) ->
 }
 
 fn main() {
-    let s = SparseEncoder::new(1 << 25, 1 << 25, (1 << 26) as f64);
-    // let vector = vec![Complex::new(34.1, 43.4), Complex::new(2123.2, -12.3)];
-    let vector = gen_complex_vec(1 << 24);
+    let s = SparseEncoder::new(1 << 20, 1 << 20, (1 << 26) as f64);
+    // let mut vector = vec![Complex::new(34.1, 43.4), Complex::new(2123.2, -12.3)];
+    let mut vector = gen_complex_vec(1 << 19);
+    let checkvec = vector.clone();
     // println!("Vector {:?}", vector);
-    let encoded = s.encode(&vector);
+    let encoded = s.encode(&mut vector);
     // println!("{:?}", encoded);
-    let decoded = s.decode(encoded);
+    let decoded = s.decode(&encoded);
     // println!("{:?}", decoded);
     let tolerance = 1e-2;
     
-    println!("Approx check: {}", are_approx_equal(&vector, &decoded, tolerance));
+    println!("Approx check: {}", are_approx_equal(&checkvec, &decoded, tolerance));
 }

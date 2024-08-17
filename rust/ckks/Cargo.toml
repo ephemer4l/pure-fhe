@@ -10,5 +10,5 @@ num-complex = "0.4.6"
 [profile.release]
 opt-level = 3
 lto = "fat"
-incremental = true
-codegen-units = 1
+# incremental = true
+# codegen-units = 1

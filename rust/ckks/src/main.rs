@@ -7,15 +7,19 @@ use rand::thread_rng;
 use rand::Rng;
 use std::f64::consts::PI;
 
+// #[inline]
+// fn reverse_bits(mut n: usize, no_of_bits: usize) -> usize {
+//     let mut result = 0;
+//     for _ in 0..no_of_bits {
+//         result <<= 1;
+//         result |= n & 1;
+//         n >>= 1;
+//     }
+//     result
+// }
 #[inline]
-fn reverse_bits(mut n: usize, no_of_bits: usize) -> usize {
-    let mut result = 0;
-    for _ in 0..no_of_bits {
-        result <<= 1;
-        result |= n & 1;
-        n >>= 1;
-    }
-    result
+fn reverse_bits(n: usize, no_of_bits: usize) -> usize {
+    n.reverse_bits() >> (usize::BITS as usize - no_of_bits)
 }
 
 #[inline]
@@ -76,12 +80,11 @@ impl SparseEncoder {
 
     #[inline]
     fn random_rounding(v: f64) -> i64 {
-        let r = v.fract();
-        let r = if r < 0.0 { -r } else { r };
+        let r = v.fract().abs();
         let choices = [r, r - 1.0];
         let weights = [1.0 - r, r];
 
-        let dist = WeightedIndex::new(weights).unwrap();
+        let dist = WeightedIndex::new(&weights).unwrap();
         let mut rng = thread_rng();
         let f = choices[dist.sample(&mut rng)];
 
@@ -144,14 +147,11 @@ fn encode(&self, vector: &Vec<Complex<f64>>) -> Vec<i64> {
     }
 
     fn decode(&self, polynomial_coeff: Vec<i64>) -> Vec<Complex<f64>> {
-        let mut message = vec![Complex::new(0.0, 0.0); self.n / 2];
-        let mut empty = vec![0.0; self.N];
-        for i in 0..self.n {
-            empty[i] = polynomial_coeff[self.N / self.n * i] as f64 / self.scale;
-        }
-
-        for i in 0..self.n / 2 {
-            message[i] = Complex::new(empty[i], empty[i + self.n / 2]);
+        let mut message = Vec::with_capacity(self.n / 2);
+        for i in 0..(self.n / 2) {
+            let real_part = polynomial_coeff[(self.N / self.n) * i] as f64 / self.scale;
+            let imag_part = polynomial_coeff[(self.N / self.n) * (i + self.n / 2)] as f64 / self.scale;
+            message.push(Complex::new(real_part, imag_part));
         }
 
         Self::fft(self.n, &mut message, &self.roots_of_unity);
@@ -194,5 +194,4 @@ fn main() {
     let tolerance = 1e-2;
     
     println!("Approx check: {}", are_approx_equal(&vector, &decoded, tolerance));
-
 }

@@ -22,12 +22,14 @@ fn reverse_bits(mut n: usize, no_of_bits: usize) -> usize {
 fn bit_reverse_vec(values: &mut Vec<Complex<f64>>) {
     let len = values.len();
     let no_of_bits = (len as f64).log2() as usize;
-    let mut result = vec![Complex::new(0.0, 0.0); len];
     for i in 0..len {
-        result[reverse_bits(i, no_of_bits)] = values[i];
+        let j = reverse_bits(i, no_of_bits);
+        if i < j {
+            values.swap(i, j);
+        }
     }
-    *values = result;
 }
+
 
 #[inline]
 fn modular_pow(base: usize, exponent: usize, modulus: usize) -> usize {
